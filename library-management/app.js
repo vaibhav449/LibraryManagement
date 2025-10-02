@@ -4,7 +4,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const connectDB = require('./config/db');
-const { connectRedis } = require('./config/redis'); // Add this
+const { swaggerUi, specs } = require('./config/swagger');
+
 const userRoutes = require('./routes/userRoutes');
 const bookRoutes = require('./routes/bookRoutes');
 const readRoutes = require('./routes/readerRoutes');
@@ -25,7 +26,6 @@ const app = express();
 
 // Connect to database
 connectDB()
-connectRedis(); 
 
 
 // Security middleware (apply before other middleware)
@@ -54,6 +54,27 @@ app.use(mongoSanitize);
 app.use(hpp);
 app.use(xssProtection);
 app.use(sanitizeInput);
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Library Management API Documentation'
+}));
+
+// Root route with API info
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Library Management System API',
+        version: '1.0.0',
+        documentation: '/api-docs',
+        endpoints: {
+            users: '/users',
+            books: '/books',
+            reader: '/reader'
+        }
+    });
+});
 
 // Routes
 app.use('/users', userRoutes);

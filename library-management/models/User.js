@@ -57,8 +57,7 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-// Indexes for better performance
-userSchema.index({ email: 1 });
+// Indexes for better performance (email index is already created by unique: true)
 userSchema.index({ role: 1 });
 
 // Pre-save validation

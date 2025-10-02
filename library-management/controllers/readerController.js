@@ -225,23 +225,24 @@ exports.returnBook = async (req, res) => {
 // Get All Borrowed Books
 exports.getBorrowedBooks = async (req, res) => {
     try {
-        const { id } = req.params;
+        // If no ID in params, get current user's borrowed books
+        const userId = req.params.id || req.user.id;
         
         // Validate ObjectId
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'Invalid user ID format' });
         }
 
         // Ensure user can only access their own borrowed books or admin access
-        if (req.user.id !== id) {
+        if (req.user.id !== userId) {
             return res.status(403).json({ 
                 message: 'You can only view your own borrowed books' 
             });
         }
 
-        const user = await User.findById(id).populate({
+        const user = await User.findById(userId).populate({
             path: 'borrowedBooks',
-            select: 'title genre stock author',
+            select: 'title genre stock author createdAt',
             populate: {
                 path: 'author',
                 select: 'name email'
@@ -256,8 +257,16 @@ exports.getBorrowedBooks = async (req, res) => {
             return res.status(400).json({ message: 'User is not a reader' });
         }
 
+        // Format borrowed books with additional data
+        const borrowedBooks = user.borrowedBooks.map(book => ({
+            _id: `${userId}_${book._id}`, // Unique ID for borrowing record
+            book: book,
+            borrowedAt: new Date(), // You might want to store this in a separate collection
+            userId: userId
+        }));
+
         res.status(200).json({ 
-            borrowedBooks: user.borrowedBooks,
+            borrowedBooks: borrowedBooks,
             totalBorrowed: user.borrowedBooks.length,
             remainingSlots: 5 - user.borrowedBooks.length
         });
